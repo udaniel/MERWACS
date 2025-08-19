@@ -39,13 +39,13 @@ Install R and RStudio to run the code.
 Install all the required packages if needed. If R and RStudio are already installed, the whole installation time would not be greater than 10 minutes.
 
 Please download all files in the repository.
-nhanes_final_kidney_reducedeGFR.rds file has the dataset for the final analysis.
-all_train_data_EKFC.rds file includes train set split from nhanes_final_kidney_reducedeGFR.rds.
-all_test_data_EKFC.rds file includes  test set split from nhanes_final_kidney_reducedeGFR.rds.
-knhanes_total_imputed.rds file includes imputed external validation (Korea NHANES; KNHANES).
-all_boruta_result*.rds files include the feature selection results.
-all_models*.rds files include final MERWACS models. 
-iso_fun*.rds files include post-processing isotonic regression models.
-dictionary_nhanes.rds file includes NHANES parameters dictionary.
+- nhanes_final_kidney_reducedeGFR.rds file has the dataset for the final analysis.
+- all_train_data_EKFC.rds file includes train set split from nhanes_final_kidney_reducedeGFR.rds.
+- all_test_data_EKFC.rds file includes  test set split from nhanes_final_kidney_reducedeGFR.rds.
+- knhanes_total_imputed.rds file includes imputed external validation (Korea NHANES; KNHANES).
+- all_boruta_result*.rds files include the feature selection results.
+- all_models*.rds files include final MERWACS models. 
+- iso_fun*.rds files include post-processing isotonic regression models.
+- dictionary_nhanes.rds file includes NHANES parameters dictionary.
 
 Follow code.R file to reproduce the figures.
