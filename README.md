@@ -3,7 +3,7 @@ Machineborne Early Renal Warning And Control System
 
 
 # **Overview**
-MERWACS aims to offer an early warning system for Chronic Kidney Diesease screening, yet, with only with simple and accessible parameters. The system is available as an application at https://dtu-quantitative-sustainability-assessment.shinyapps.io/MERWACS/. The application is saved at the shinyapps.io by RStudio, https://www.shinyapps.io/. The code to reproduce the Figures is available here. The code is written in RStudio.
+MERWACS aims to offer an early warning system for Chronic Kidney Diesease screening, with only with simple and accessible parameters. The system is available as an application at https://dtu-quantitative-sustainability-assessment.shinyapps.io/MERWACS/. The application is saved at the shinyapps.io by RStudio, https://www.shinyapps.io/. The code to reproduce the Figures is available here. The code is written in RStudio.
 
 # **System requirement**
 Hardware requirements:
