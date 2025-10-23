@@ -1,7 +1,5 @@
 ## Figures made on  R version 4.3.2 ##
 
-
-
 ##### Install packages #####
 # Skip this if you already have installed them
 install.packages(c("tidyverse", "ggplot2", "Boruta", "parallel", "doParallel", "caret", "geomtextpath",
@@ -24,7 +22,9 @@ library(viridis)
 library(ggh4x)
 library(forcats)
 library(patchwork)
-
+library(kernelshap)
+library(shapviz)
+library(lime)
 
 #### Load Data and Models ####
 nhanes_final_kidney_reducedeGFR <- read_rds("code/nhanes_final_kidney_reducedeGFR.rds")
@@ -585,7 +585,7 @@ ggsave(filename = "Figure_3_performance.png", plot = final_results_performance_E
 
 #### Figure 4. Global predictor importance as visualized by SHAP summary plots ####
 ###### SHAP (1. EKFC) ######
-library(kernelshap); library(shapviz)
+
 all_final_features_EKFC <- all_models_EKFC_XGBOOST_train$trainingData %>% select(-.outcome) %>% names()
 
 cores <- detectCores()
@@ -818,7 +818,6 @@ ggsave(filename = "Figure_4_SHAP.png", width = 15, height = 20)
 
 
 #### Figure 5. Case-specific interpretations of MERWACS predictions using LIME ####
-library(lime)
 
 ## Find Youden's cutoff (#1 EKFC) - if you have not done this already above ##
 train_probs_EKFC <- predict(all_models_EKFC_XGBOOST_train, all_train_data_EKFC, type = "prob")[, "Reduced"]
@@ -901,34 +900,14 @@ all_test_data_wPred <-
 
 # Examples
 all_test_data_wPred %>% 
-    filter(predict_test_EKFC_cal < 0.1) %>% 
+    filter(predict_test_EKFC_cal < 0.1 & predict_test_EPI2021_cal < 0.1 & predict_test_EPI2009_cal < 0.1) %>% 
     dplyr::slice(1) %>% 
-    select(all_of(features_EKFC)) -> lime_EKFC_exp_low
+    select(all_of(c(features_EKFC, features_EPI2021, features_EPI2009))) -> lime_exp_low
 
 all_test_data_wPred %>% 
-    filter(predict_test_EKFC_cal > 0.9) %>% 
+    filter(predict_test_EKFC_cal > 0.9 & predict_test_EPI2021_cal > 0.9 & predict_test_EPI2009_cal > 0.9) %>% 
     dplyr::slice(1) %>% 
-    select(all_of(features_EKFC)) -> lime_EKFC_exp_high
-
-all_test_data_wPred %>% 
-    filter(predict_test_EPI2021_cal < 0.1) %>% 
-    dplyr::slice(1) %>% 
-    select(all_of(features_EPI2021)) -> lime_EPI2021_exp_low
-
-all_test_data_wPred %>% 
-    filter(predict_test_EPI2021_cal > 0.9) %>% 
-    dplyr::slice(1) %>% 
-    select(all_of(features_EPI2021)) -> lime_EPI2021_exp_high
-
-all_test_data_wPred %>% 
-    filter(predict_test_EPI2009_cal < 0.1) %>% 
-    dplyr::slice(1) %>% 
-    select(all_of(features_EPI2009)) -> lime_EPI2009_exp_low
-
-all_test_data_wPred %>% 
-    filter(predict_test_EPI2009_cal > 0.9) %>% 
-    dplyr::slice(1) %>% 
-    select(all_of(features_EPI2009)) -> lime_EPI2009_exp_high
+    select(all_of(c(features_EKFC, features_EPI2021, features_EPI2009))) -> lime_exp_high
 
 # Model
 lime_to_input_EKFC <- 
@@ -954,15 +933,15 @@ explainer_EKFC <- lime(lime_to_input_EKFC,
                        bin_continuous = T,
                        n_bins = 4)
 set.seed(1)
-explanation_EKFC_low <- lime::explain(lime_EKFC_exp_low,
+explanation_EKFC_low <- lime::explain(lime_exp_low %>% select(all_of(features_EKFC)),
                                       explainer_EKFC, 
                                       labels = "Reduced",
-                                      n_features = ncol(lime_EKFC_exp_low))
+                                      n_features = length(features_EKFC))
 set.seed(1)
-explanation_EKFC_high <- lime::explain(lime_EKFC_exp_high,
+explanation_EKFC_high <- lime::explain(lime_exp_high %>% select(all_of(features_EKFC)),
                                        explainer_EKFC, 
                                        labels = "Reduced",
-                                       n_features = ncol(lime_EKFC_exp_high))
+                                       n_features = length(features_EKFC))
 
 
 set.seed(1)
@@ -971,15 +950,15 @@ explainer_EPI2021 <- lime(lime_to_input_EPI2021,
                           bin_continuous = T,
                           n_bins = 4)
 set.seed(1)
-explanation_EPI2021_low <- lime::explain(lime_EPI2021_exp_low,
+explanation_EPI2021_low <- lime::explain(lime_exp_low %>% select(all_of(features_EPI2021)),
                                          explainer_EPI2021, 
                                          labels = "Reduced",
-                                         n_features = ncol(lime_EPI2021_exp_low))
+                                         n_features = length(features_EPI2021))
 set.seed(1)
-explanation_EPI2021_high <- lime::explain(lime_EPI2021_exp_high,
+explanation_EPI2021_high <- lime::explain(lime_exp_high %>% select(all_of(features_EPI2021)),
                                           explainer_EPI2021, 
                                           labels = "Reduced",
-                                          n_features = ncol(lime_EPI2021_exp_high))
+                                          n_features = length(features_EPI2021))
 
 set.seed(1)
 explainer_EPI2009 <- lime(lime_to_input_EPI2009, 
@@ -987,15 +966,15 @@ explainer_EPI2009 <- lime(lime_to_input_EPI2009,
                           bin_continuous = T,
                           n_bins = 4)
 set.seed(1)
-explanation_EPI2009_low <- lime::explain(lime_EPI2009_exp_low,
+explanation_EPI2009_low <- lime::explain(lime_exp_low %>% select(all_of(features_EPI2009)),
                                          explainer_EPI2009, 
                                          labels = "Reduced",
-                                         n_features = ncol(lime_EPI2009_exp_low))
+                                         n_features = length(features_EPI2009))
 set.seed(1)
-explanation_EPI2009_high <- lime::explain(lime_EPI2009_exp_high,
+explanation_EPI2009_high <- lime::explain(lime_exp_high %>% select(all_of(features_EPI2009)),
                                           explainer_EPI2009, 
                                           labels = "Reduced",
-                                          n_features = ncol(lime_EPI2009_exp_high))
+                                          n_features = length(features_EPI2009))
 
 
 explanation_EKFC_low %>% 
@@ -1349,7 +1328,6 @@ ggplot(explanation_EPI2009_high_clean, aes(x = feature_desc, y = feature_weight,
     theme_minimal() -> p_lime_EPI2009_high
 
 
-library(patchwork)
 (p_lime_EKFC_low + p_lime_EKFC_high) / 
     (p_lime_EPI2021_low + p_lime_EPI2021_high) / 
     (p_lime_EPI2009_low + p_lime_EPI2009_high) +
