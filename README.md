@@ -33,6 +33,7 @@ Packages:
 -	kernelshap (version 0.7.0)
 - shapviz (version 0.9.4)
 - patchwork (version 1.3.0)
+- dcurves (version 0.5.0)
 
 # **Instructions guide**
 Install R and RStudio to run the code.
