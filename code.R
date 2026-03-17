@@ -1,10 +1,17 @@
 ## Figures made on  R version 4.3.2 ##
 
 ##### Install packages #####
-# Skip this if you already have installed them
-install.packages(c("tidyverse", "ggplot2", "Boruta", "parallel", "doParallel", "caret", "geomtextpath",
-                   "ggsci", "pROC", "yardstick", "viridis", "rsample",
-                   "ggh4x", "forcats", "kernelshap", "shapviz", "patchwork"))
+packages <- c("tidyverse", "ggplot2", "Boruta", "parallel", "doParallel", "caret", 
+              "geomtextpath", "ggsci", "pROC", "yardstick", "viridis", "rsample",
+              "ggh4x", "forcats", "kernelshap", "shapviz", "patchwork", "dcurves")
+
+# Identify packages not installed
+not_installed <- packages[!sapply(packages, requireNamespace, quietly = TRUE)]
+
+# Install only missing packages
+if (length(not_installed) > 0) {
+    install.packages(not_installed)
+}
 
 #### Load packages ####
 library(tidyverse)
@@ -25,23 +32,24 @@ library(patchwork)
 library(kernelshap)
 library(shapviz)
 library(lime)
+library(dcurves)
 
 #### Load Data and Models ####
-nhanes_final_kidney_reducedeGFR <- read_rds("code/nhanes_final_kidney_reducedeGFR.rds")
-all_train_data_EKFC <- read_rds("code/all_train_data_EKFC.rds")
-all_test_data_EKFC <- read_rds("code/all_test_data_EKFC.rds")
-all_boruta_result_EKFC <- read_rds("code/all_boruta_result_EKFC.rds")
-all_boruta_result_EPI2021 <- read_rds("code/all_boruta_result_EPI2021.rds")
-all_boruta_result_EPI2009 <- read_rds("code/all_boruta_result_EPI2009.rds")
-dictionary_nhanes <- read_rds("code/dictionary_nhanes.rds")
+nhanes_final_kidney_reducedeGFR <- read_rds("nhanes_final_kidney_reducedeGFR.rds")
+all_train_data_EKFC <- read_rds("all_train_data_EKFC.rds")
+all_test_data_EKFC <- read_rds("all_test_data_EKFC.rds")
+all_boruta_result_EKFC <- read_rds("all_boruta_result_EKFC.rds")
+all_boruta_result_EPI2021 <- read_rds("all_boruta_result_EPI2021.rds")
+all_boruta_result_EPI2009 <- read_rds("all_boruta_result_EPI2009.rds")
+dictionary_nhanes <- read_rds("dictionary_nhanes.rds")
 
-all_models_EKFC_XGBOOST_train <- read_rds("code/all_models_EKFC_XGBOOST_train.rds")
-all_models_EPI2021_XGBOOST_train <- read_rds("code/all_models_EPI2021_XGBOOST_train.rds")
-all_models_EPI2009_XGBOOST_train <- read_rds("code/all_models_EPI2009_XGBOOST_train.rds")
-iso_fun_EKFC <- read_rds("code/iso_fun_EKFC.rds")
-iso_fun_EPI2021 <- read_rds("code/iso_fun_EPI2021.rds")
-iso_fun_EPI2009 <- read_rds("code/iso_fun_EPI2009.rds")
-knhanes_total_imputed <- read_rds("code/knhanes_total_imputed.rds")
+all_models_EKFC_XGBOOST_train <- read_rds("all_models_EKFC_XGBOOST_train.rds")
+all_models_EPI2021_XGBOOST_train <- read_rds("all_models_EPI2021_XGBOOST_train.rds")
+all_models_EPI2009_XGBOOST_train <- read_rds("all_models_EPI2009_XGBOOST_train.rds")
+iso_fun_EKFC <- read_rds("iso_fun_EKFC.rds")
+iso_fun_EPI2021 <- read_rds("iso_fun_EPI2021.rds")
+iso_fun_EPI2009 <- read_rds("iso_fun_EPI2009.rds")
+knhanes_total_imputed <- read_rds("knhanes_total_imputed.rds")
 
 
 #### Figure 1. Overview of estimated glomerular filtration rate (eGFR) and prevalence of reduced kidney health in the NHANES derivation dataset ####
@@ -57,18 +65,18 @@ nhanes_final_kidney_reducedeGFR %>%
     ggplot(aes(x = RIDAGEYR, y = value, color = Formula)) +
     geom_labelsmooth(aes(label = Formula),
                      method = "loess", formula = y ~ x,
-                     size = 4, linewidth = 2, boxlinewidth = 0.3) +
+                     size = 2.5, linewidth = 1, boxlinewidth = 0.3) +
     facet_wrap(~ RIAGENDR) +
     scale_x_continuous(breaks = seq(50, 100, 5)) +
     scale_y_continuous(breaks = seq(0, 140, 10), limits = c(0, 100)) + 
     scale_colour_viridis_d(option = "turbo") +
     theme_bw() +
     ylab("Estimated Glomerular Filtration Rate (eGFR)") + xlab("Age") + 
-    theme(axis.text = element_text(size = 12),
-          axis.title = element_text(size = 14, face = "bold"),
-          legend.title = element_text(size = 14, face = "bold"),
-          legend.text = element_text(size = 12),
-          strip.text = element_text(size = 14, face = "bold")) -> eGFR_final
+    theme(axis.text = element_text(size = 9),
+          axis.title = element_text(size = 10, face = "bold"),
+          legend.title = element_text(size = 10, face = "bold"),
+          legend.text = element_text(size = 9),
+          strip.text = element_text(size = 10, face = "bold")) -> eGFR_final
 
 
 nhanes_final_kidney_reducedeGFR %>% 
@@ -91,7 +99,7 @@ nhanes_final_kidney_reducedeGFR %>%
     scale_y_continuous(labels = scales::percent_format()) +
     scale_fill_manual(
         name = "Kidney Health Status",
-        values = c("Healthy" = "#4682B4", "Reduced" = "#CD5C5C") # Steel Blue and Indian Red
+        values = c("Healthy" = "#4682B4", "Reduced" = "#CD5C5C")
     ) +
     scale_x_discrete(labels = c("less_54" = "50-54", "less_59" = "55-59",
                                 "less_64" = "60-64", "less_69" = "65-69",
@@ -104,19 +112,27 @@ nhanes_final_kidney_reducedeGFR %>%
     ) +
     theme_bw() +
     theme(
-        axis.title = element_text(size = 14, face = "bold"),
-        axis.text = element_text(size = 12, face = "bold"),
+        axis.title = element_text(size = 10, face = "bold"),
+        axis.text = element_text(size = 9, face = "bold"),
         axis.text.x = element_text(angle = 45, hjust = 1),
-        legend.title = element_text(size = 14, face = "bold"),
-        legend.text = element_text(size = 12),
-        strip.text = element_text(size = 14, face = "bold")
+        legend.title = element_text(size = 10, face = "bold"),
+        legend.text = element_text(size = 9),
+        strip.text = element_text(size = 10, face = "bold")
     ) -> age_sex_group_outcome_proportion
 
 eGFR_final / age_sex_group_outcome_proportion + 
     plot_annotation(tag_levels = 'A') &
-    theme(plot.tag = element_text(face = 'bold', size = 18)) -> outcome_plots
+    theme(plot.tag = element_text(face = 'bold', size = 12)) -> outcome_plots
 
-ggsave(plot = outcome_plots, "Figure_1_outcome.png", width = 12, height = 12)
+# Adjust the size of the figure as desired.
+ggsave(plot = outcome_plots, 
+       filename = "Figure_1_outcome.tif",
+       device = "tif",
+       width = 7.5, 
+       height = 7.5, 
+       units = "in",
+       compression = "lzw",
+       dpi = 600)
 
 
 #### Figure 2. Predictor importance for reduced kidney health as determined by the Boruta algorithm ####
@@ -283,11 +299,21 @@ all_boruta_result_EPI2009_detail %>%
 # Merge the three figures
 p_features_boruta_EKFC / p_features_boruta_EPI2021 / p_features_boruta_EPI2009 +
     plot_annotation(tag_levels = 'A') &
-    theme(axis.text = element_text(size = 20),
-          axis.title = element_text(size = 20, face = "bold"),
-          plot.tag = element_text(face = 'bold', size = 25))
+    theme(axis.text = element_text(size = 8),
+          axis.title = element_text(size = 10, face = "bold"),
+          plot.tag = element_text(face = 'bold', size = 12),
+          plot.margin = ggplot2::margin(t = 5, r = 10, b = 5, l = 5, unit = "pt")) -> p_features_boruta_total
 
-ggsave("Figure_2_features.png", width = 15, height = 20)
+# Adjust the size of the figure as desired.
+ggsave(
+    filename = "Figure_2_features.tif",
+    plot = p_features_boruta_total,
+    width = 7.5,
+    height = 8.75,
+    dpi = 600,
+    device = "tif",
+    compression = "lzw"
+)
 
 
 #### Figure 3. Discrimination and calibration performance of MERWACS for the EKFC-defined outcome ####
@@ -458,7 +484,7 @@ result_detail_int_ext_EKFC %>%
     theme_bw() +
     theme(
         legend.position = "none", # IMPORTANT: Turn off legend for individual plot
-        plot.margin = ggplot2::margin(t = 5, r = 15, l = 5, unit = "pt") # Increased 'r' (right) margin
+        plot.margin = ggplot2::margin(t = 5, r = 15, l = 5, unit = "pt")
     ) -> final_results_internal_external_EKFC
 
 
@@ -493,10 +519,10 @@ final_results_PR_ratio_EKFC_custom <-
     theme_bw() +
     theme(
         axis.title.x = element_text(size = 15, face = "bold"),
-        axis.text.x = element_blank(), # Remove x-axis text (labels for validation groups)
+        axis.text.x = element_blank(), # Remove x-axis text
         axis.ticks.x = element_blank(), # Remove x-axis ticks
         axis.text.y = element_text(size = 14),
-        plot.margin = ggplot2::margin(t = 5, r = 5, b = 5, l = 5, unit = "pt") # Increased 'l' (left) margin
+        plot.margin = ggplot2::margin(t = 5, r = 5, b = 5, l = 5, unit = "pt")
     )
 
 
@@ -557,31 +583,40 @@ CCDDDD
 
 guide_area() +
     (final_results_internal_external_EKFC +
-         theme(axis.text.x = element_text(size = 20),
-               axis.text.y = element_text(size = 20),
-               axis.title.x = element_text(size = 22, face = "bold"),
-               axis.title.y = element_text(size = 22, face = "bold"))) +
+         theme(axis.text.x = element_text(size = 8),
+               axis.text.y = element_text(size = 8),
+               axis.title.x = element_text(size = 9, face = "bold"),
+               axis.title.y = element_text(size = 9, face = "bold"))) +
     (final_results_PR_ratio_EKFC_custom +
-         theme(axis.text.y = element_text(size = 20),
-               axis.title.x = element_text(size = 22, face = "bold"),
-               axis.title.y = element_text(size = 22, face = "bold"))) +
+         theme(axis.text.y = element_text(size = 8),
+               axis.title.x = element_text(size = 9, face = "bold"),
+               axis.title.y = element_text(size = 9, face = "bold"))) +
     (CALIB_curve_int_ext_EKFC + 
-         theme(axis.text.x = element_text(size = 20),
-               axis.text.y = element_text(size = 20),
-               axis.title.x = element_text(size = 22, face = "bold"),
-               axis.title.y = element_text(size = 22, face = "bold"))) +
+         theme(axis.text.x = element_text(size = 8),
+               axis.text.y = element_text(size = 8),
+               axis.title.x = element_text(size = 9, face = "bold"),
+               axis.title.y = element_text(size = 9, face = "bold"))) +
     plot_annotation(tag_levels = 'A') +
     plot_layout(guides = "collect", 
                 design = layout,
                 heights = c(0.8, 4, 4)) &
     theme(legend.position = "top",
-          legend.box.margin = ggplot2::margin(b = 20, unit = "pt"),
-          legend.text = element_text(size = 20),
-          legend.title = element_text(size = 20, face = "bold"),
-          plot.tag = element_text(size = 30, face = 'bold')) -> final_results_performance_EKFC
+          legend.box.margin = ggplot2::margin(b = 10, unit = "pt"),
+          legend.text = element_text(size = 8),
+          legend.title = element_text(size = 9, face = "bold"),
+          plot.tag = element_text(size = 12, face = 'bold')) -> final_results_performance_EKFC
 
 
-ggsave(filename = "Figure_3_performance.png", plot = final_results_performance_EKFC, width = 16, height = 16)
+# Adjust the size of the figure as desired.
+ggsave(
+    filename = "Figure_3_performance.tif",
+    plot = final_results_performance_EKFC, 
+    width = 7.5, 
+    height = 7.5,
+    dpi = 600,
+    device = "tif",
+    compression = "lzw"
+)
 
 #### Figure 4. Global predictor importance as visualized by SHAP summary plots ####
 ###### SHAP (1. EKFC) ######
@@ -640,7 +675,11 @@ colnames(all_sv_system_EKFC$Healthy) <- all_new_names_system_EKFC
 all_sv_imp_system_EKFC <- sv_importance(all_sv_system_EKFC, kind = "bee", max_display = 20, viridis_args = list(option = "H"))
 
 all_sv_system_EKFC$Healthy <- NULL
-all_sv_imp_system_EKFC <- sv_importance(all_sv_system_EKFC, kind = "bee", max_display = 20, viridis_args = list(option = "H"))
+all_sv_imp_system_EKFC <- sv_importance(all_sv_system_EKFC, 
+                                        kind = "bee", 
+                                        max_display = 20, 
+                                        viridis_args = list(option = "H"),
+                                        bee_width = 0.4, size = 0.3)
 
 all_sv_imp_system_EKFC &
     theme_classic() &
@@ -717,7 +756,11 @@ colnames(all_sv_system_EPI2021$Healthy) <- all_new_names_system_EPI2021
 all_sv_imp_system_EPI2021 <- sv_importance(all_sv_system_EPI2021, kind = "bee", max_display = 20, viridis_args = list(option = "H"))
 
 all_sv_system_EPI2021$Healthy <- NULL
-all_sv_imp_system_EPI2021 <- sv_importance(all_sv_system_EPI2021, kind = "bee", max_display = 20, viridis_args = list(option = "H"))
+all_sv_imp_system_EPI2021 <- sv_importance(all_sv_system_EPI2021, 
+                                           kind = "bee", 
+                                           max_display = 20, 
+                                           viridis_args = list(option = "H"),
+                                           bee_width = 0.4, size = 0.3)
 
 all_sv_imp_system_EPI2021 &
     theme_classic() &
@@ -793,7 +836,11 @@ colnames(all_sv_system_EPI2009$Healthy) <- all_new_names_system_EPI2009
 all_sv_imp_system_EPI2009 <- sv_importance(all_sv_system_EPI2009, kind = "bee", max_display = 20, viridis_args = list(option = "H"))
 
 all_sv_system_EPI2009$Healthy <- NULL
-all_sv_imp_system_EPI2009 <- sv_importance(all_sv_system_EPI2009, kind = "bee", max_display = 20, viridis_args = list(option = "H"))
+all_sv_imp_system_EPI2009 <- sv_importance(all_sv_system_EPI2009, 
+                                           kind = "bee", 
+                                           max_display = 20, 
+                                           viridis_args = list(option = "H"),
+                                           bee_width = 0.4, size = 0.3)
 
 all_sv_imp_system_EPI2009 &
     theme_classic() &
@@ -811,9 +858,25 @@ p_shap_sytem_kidney_EKFC /
     p_shap_sytem_kidney_EPI2021 / 
     p_shap_sytem_kidney_EPI2009 +
     plot_annotation(tag_levels = "A") &
-    theme(plot.tag = element_text(face = 'bold', size = 25))
+    theme(
+        axis.text.x   = element_text(size = 7),
+        axis.text.y   = element_text(size = 7),
+        axis.title.x  = element_text(size = 9, face = "bold", vjust = -1),
+        legend.title  = element_text(size = 9, face = "bold"),
+        legend.text   = element_text(size = 7),
+        plot.title    = element_text(size = 9, face = "bold"),
+        plot.tag      = element_text(face = "bold", size = 12),
+        plot.margin   = ggplot2::margin(t = 5, r = 15, b = 5, l = 5, unit = "pt")
+    ) -> p_shap_total
 
-ggsave(filename = "Figure_4_SHAP.png", width = 15, height = 20)
+# Adjust the size of the figure as desired.
+ggsave(filename = "Figure_4_SHAP.tif",
+       device = "tif",
+       compression = "lzw",
+       plot = p_shap_total,
+       width = 7.5,
+       height = 8.75,
+       dpi = 600)
 
 
 
@@ -1206,7 +1269,6 @@ ggplot(explanation_EKFC_low_clean, aes(x = feature_desc, y = feature_weight, fil
     labs(
         title = "MERWACS",
         subtitle = paste0(
-            "Predicting: ", explanation_EKFC_low_clean$label[1],
             "\nProbability: ", round(explanation_EKFC_low_clean$label_prob[1], 2),
             "\nExplanation Fit: ", round(explanation_EKFC_low_clean$model_r2[1], 2)
         ),
@@ -1229,7 +1291,6 @@ ggplot(explanation_EKFC_high_clean, aes(x = feature_desc, y = feature_weight, fi
     labs(
         title = "MERWACS",
         subtitle = paste0(
-            "Predicting: ", explanation_EKFC_high_clean$label[1],
             "\nProbability: ", round(explanation_EKFC_high_clean$label_prob[1], 2),
             "\nExplanation Fit: ", round(explanation_EKFC_high_clean$model_r2[1], 2)
         ),
@@ -1252,7 +1313,6 @@ ggplot(explanation_EPI2021_low_clean, aes(x = feature_desc, y = feature_weight, 
     labs(
         title = "MERWACS",
         subtitle = paste0(
-            "Predicting: ", explanation_EPI2021_low_clean$label[1],
             "\nProbability: ", round(explanation_EPI2021_low_clean$label_prob[1], 2),
             "\nExplanation Fit: ", round(explanation_EPI2021_low_clean$model_r2[1], 2)
         ),
@@ -1274,7 +1334,6 @@ ggplot(explanation_EPI2021_high_clean, aes(x = feature_desc, y = feature_weight,
     labs(
         title = "MERWACS",
         subtitle = paste0(
-            "Predicting: ", explanation_EPI2021_high_clean$label[1],
             "\nProbability: ", round(explanation_EPI2021_high_clean$label_prob[1], 2),
             "\nExplanation Fit: ", round(explanation_EPI2021_high_clean$model_r2[1], 2)
         ),
@@ -1296,7 +1355,6 @@ ggplot(explanation_EPI2009_low_clean, aes(x = feature_desc, y = feature_weight, 
     labs(
         title = "MERWACS",
         subtitle = paste0(
-            "Predicting: ", explanation_EPI2009_low_clean$label[1],
             "\nProbability: ", round(explanation_EPI2009_low_clean$label_prob[1], 2),
             "\nExplanation Fit: ", round(explanation_EPI2009_low_clean$model_r2[1], 2)
         ),
@@ -1318,7 +1376,6 @@ ggplot(explanation_EPI2009_high_clean, aes(x = feature_desc, y = feature_weight,
     labs(
         title = "MERWACS",
         subtitle = paste0(
-            "Predicting: ", explanation_EPI2009_high_clean$label[1],
             "\nProbability: ", round(explanation_EPI2009_high_clean$label_prob[1], 2),
             "\nExplanation Fit: ", round(explanation_EPI2009_high_clean$model_r2[1], 2)
         ),
@@ -1334,17 +1391,77 @@ ggplot(explanation_EPI2009_high_clean, aes(x = feature_desc, y = feature_weight,
     plot_layout(guides = "collect") +
     plot_annotation(tag_levels = 'A') &
     theme(
-        plot.title = element_text(size = 20, face = "bold"),
-        plot.subtitle = element_text(size = 17, lineheight = 1.1),
-        axis.title = element_text(size = 17, face = "bold"),
-        axis.text = element_text(size = 17),
-        legend.title = element_text(size = 17, face = "bold"),
+        plot.title = element_text(size = 9, face = "bold"),
+        plot.subtitle = element_text(size = 8, lineheight = 1.1),
+        axis.title = element_text(size = 9, face = "bold"),
+        axis.text = element_text(size = 7),
+        legend.title = element_text(size = 9, face = "bold"),
         legend.position = "bottom",
+        legend.justification = "center",
         legend.box.just = "center",
-        legend.text = element_text(size = 17),
-        plot.tag = element_text(face = 'bold', size = 25)) -> p_lime_total
+        legend.margin = ggplot2::margin(t = 0, r = 170, b = 0, l = 0, unit = "pt"),
+        legend.text = element_text(size = 9),
+        plot.tag = element_text(face = 'bold', size = 10),
+        plot.margin = ggplot2::margin(t = 5, r = 15, b = 5, l = 5, unit = "pt")) -> p_lime_total
 
 
-ggsave(filename = "Figure_5_LIME.png", plot = p_lime_total, width = 20, height = 15)
+# Adjust the size of the figure as desired.
+ggsave(filename = "Figure_5_LIME.tif", 
+       plot = p_lime_total,
+       width = 7.5, 
+       height = 8.75,
+       units = "in",
+       dpi = 600,
+       device = "tif",
+       compression = "lzw")
 
+
+#### Figure 6. Decision Curve Analysis ####
+dca(reduced_eGFR_EKFC ~ Age_based + HTN_based + KDIGO_simplified + 
+        predict_test_EKFC_cal,
+    data = all_test_data_wPred %>%
+        mutate(
+            reduced_eGFR_EKFC    = as.numeric(reduced_eGFR_EKFC == "Reduced"),
+            Age_based            = ifelse(RIDAGEYR >= 55, 1, 0),
+            HTN_based            = ifelse(BPQ020 == 1, 1, 0),
+            KDIGO_simplified     = ifelse(DIQ010 == 1 | BPQ020 == 1, 1, 0)
+        ),
+    thresholds = seq(0, 1, by = 0.01),
+    label = list(
+        Age_based             = "Age-based (≥55 years)",
+        HTN_based             = "Hypertension-based",
+        KDIGO_simplified      = "KDIGO-simplified (DM or HTN)",
+        predict_test_EKFC_cal = "MERWACS"
+    )) %>%
+    plot(smooth = TRUE) +
+    labs(x = "Screen Threshold Probability", y = "Net Benefit") +
+    scale_colour_viridis_d(
+        option = "turbo",
+        name   = "Screen",
+        labels = c("Screen All", "Screen None",
+                   "Age-based (≥55 years)",
+                   "Hypertension-based",
+                   "KDIGO-simplified (DM or HTN)",
+                   "MERWACS")
+    ) +
+    theme(
+        axis.text    = element_text(size = 10),
+        axis.title   = element_text(size = 15, face = "bold"),
+        legend.text  = element_text(size = 10),
+        legend.title = element_text(size = 15, face = "bold")
+    ) -> dcurve_EKFC
+
+dcurve_EKFC
+
+# Modify line thickness of existing layers directly
+dcurve_EKFC$layers[[1]]$aes_params$linewidth <- 1.5
+
+# Adjust the size of the figure as desired.
+ggsave(plot = dcurve_EKFC, 
+       filename = "Figure_6_DCA_EKFC.tif",
+       device = "tif",
+       width = 10, 
+       height = 7,
+       dpi = 600, 
+       compression = "lzw")
 
